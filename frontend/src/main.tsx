@@ -11,7 +11,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 const queryClient = new QueryClient()
 
 // 1. Get projectId from https://cloud.walletconnect.com
-const projectId = 'd2b3b5552ac40101f4c719e7a8e0e6c5' // This is a public demo ID
+const projectId = import.meta.env.VITE_PROJECT_ID
+if (!projectId) {
+  throw new Error('VITE_PROJECT_ID is not set. Please add it to your .env file or Vercel environment variables.')
+}
 
 // 2. Create wagmiConfig
 const metadata = {
