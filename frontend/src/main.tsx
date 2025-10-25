@@ -2,7 +2,10 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
-import { createWeb3Modal, defaultWagmiConfig } from '@web3modal/wagmi/react'
+
+import { createWeb3Modal } from '@web3modal/wagmi/react'
+import { defaultWagmiConfig } from '@web3modal/wagmi/react/config'
+
 import { WagmiProvider } from 'wagmi'
 import { mainnet, sepolia } from 'wagmi/chains'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -11,9 +14,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 const queryClient = new QueryClient()
 
 // 1. Get projectId from https://cloud.walletconnect.com
-const projectId = import.meta.env.VITE_PROJECT_ID
+const projectId = import.meta.env.VITE_PROJECT_ID;
 if (!projectId) {
-  throw new Error('VITE_PROJECT_ID is not set. Please add it to your .env file or Vercel environment variables.')
+  throw new Error('VITE_PROJECT_ID is not set in your .env file or Vercel environment variables.');
 }
 
 // 2. Create wagmiConfig
@@ -25,25 +28,25 @@ const metadata = {
 }
 
 const chains = [mainnet, sepolia] as const
-const wagmiConfig = defaultWagmiConfig({
+const config = defaultWagmiConfig({
   chains,
   projectId,
-  metadata
+  metadata,
 })
 
 // 3. Create modal
 createWeb3Modal({
-  wagmiConfig,
+  wagmiConfig: config,
   projectId,
-  chains
 })
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <WagmiProvider config={wagmiConfig}>
+    <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <App />
       </QueryClientProvider>
     </WagmiProvider>
   </React.StrictMode>,
 )
+
