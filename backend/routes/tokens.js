@@ -313,7 +313,7 @@ router.patch('/:id/toggle', [
   }
 });
 
-// DELETE /api/tokens/:id - 删除代币（软删除，设置为不活跃）
+// DELETE /api/tokens/:id - 硬删除代币（从数据库中移除）
 router.delete('/:id', [
   param('id').isInt({ min: 1 }).withMessage('Token ID must be positive integer')
 ], validateRequest, async (req, res) => {
@@ -328,12 +328,12 @@ router.delete('/:id', [
       });
     }
     
-    // 软删除 - 设置为不活跃状态
-    await dbQuery('UPDATE supported_tokens SET is_active = 0 WHERE id = ?', [id]);
+    // 硬删除 - 直接从数据库中删除记录
+    await dbQuery('DELETE FROM supported_tokens WHERE id = ?', [id]);
     
     res.json({
       success: true,
-      message: 'Token deactivated successfully'
+      message: 'Token deleted successfully'
     });
   } catch (error) {
     console.error('Error deleting token:', error);
