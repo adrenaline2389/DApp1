@@ -1,7 +1,10 @@
 // 代币管理后台 JavaScript
 class TokenAdmin {
     constructor() {
-        this.baseURL = 'http://localhost:3001/api';
+        // 允许通过 window.ADMIN_API_BASE_URL 覆盖，方便生产部署
+        // 例如在 index.html 里注入：
+        // <script>window.ADMIN_API_BASE_URL = 'https://your-api.example.com/api'</script>
+        this.baseURL = (window && window.ADMIN_API_BASE_URL) ? window.ADMIN_API_BASE_URL : 'http://localhost:3001/api';
         this.token = localStorage.getItem('adminToken');
         this.currentPage = 1;
         this.pageSize = 10;

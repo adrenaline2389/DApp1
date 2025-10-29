@@ -2,8 +2,9 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 
-const DB_PATH = path.join(__dirname, '../../database/tokens.db');
-const SCHEMA_PATH = path.join(__dirname, '../../database/schema.sql');
+// 允许通过环境变量覆盖数据库与Schema路径，以便在云环境挂载持久化存储
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../../database/tokens.db');
+const SCHEMA_PATH = process.env.SCHEMA_PATH || path.join(__dirname, '../../database/schema.sql');
 
 // 确保数据库目录存在
 const ensureDirectoryExists = (dirPath) => {
