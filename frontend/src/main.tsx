@@ -7,7 +7,7 @@ import { createWeb3Modal } from '@web3modal/wagmi/react'
 import { defaultWagmiConfig } from '@web3modal/wagmi/react/config'
 
 import { WagmiProvider } from 'wagmi'
-import { mainnet, sepolia } from 'wagmi/chains'
+import { mainnet, base } from 'wagmi/chains'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 // 0. Setup queryClient
@@ -22,12 +22,12 @@ if (!projectId) {
 // 2. Create wagmiConfig
 const metadata = {
   name: 'Web3 Transfer App',
-  description: 'A simple app to transfer ETH and ERC20 tokens',
-  url: 'https://web3modal.com', // origin domain
+  description: 'Transfer ETH and ERC20 tokens on Ethereum and Base',
+  url: 'https://web3modal.com',
   icons: ['https://avatars.githubusercontent.com/u/37784886']
 }
 
-const chains = [mainnet, sepolia] as const
+const chains = [mainnet, base] as const
 const config = defaultWagmiConfig({
   chains,
   projectId,
@@ -49,4 +49,3 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </WagmiProvider>
   </React.StrictMode>,
 )
-

@@ -2,15 +2,14 @@
 class TokenAdmin {
     constructor() {
         // 允许通过 window.ADMIN_API_BASE_URL 覆盖，方便生产部署
-        // 例如在 index.html 里注入：
-        // <script>window.ADMIN_API_BASE_URL = 'https://your-api.example.com/api'</script>
         this.baseURL = (window && window.ADMIN_API_BASE_URL) ? window.ADMIN_API_BASE_URL : 'http://localhost:3001/api';
         this.token = localStorage.getItem('adminToken');
         this.currentPage = 1;
         this.pageSize = 10;
         this.filters = {
             status: 'all',
-            type: 'all'
+            type: 'all',
+            chain: 'all'
         };
         
         this.init();
@@ -43,6 +42,7 @@ class TokenAdmin {
         // 筛选器
         document.getElementById('statusFilter').addEventListener('change', (e) => this.handleFilterChange('status', e.target.value));
         document.getElementById('typeFilter').addEventListener('change', (e) => this.handleFilterChange('type', e.target.value));
+        document.getElementById('chainFilter').addEventListener('change', (e) => this.handleFilterChange('chain', e.target.value));
         
         // 刷新按钮
         document.getElementById('refreshBtn').addEventListener('click', () => this.loadTokens());
@@ -180,7 +180,6 @@ class TokenAdmin {
         try {
             this.showLoading();
             
-            // 检查认证状态
             if (!this.token) {
                 this.showMessage('请先登录', 'error');
                 this.showLoginModal();
@@ -199,8 +198,7 @@ class TokenAdmin {
             const response = await fetch(`${this.baseURL}/tokens?${params}`, {
                 method: 'GET',
                 headers: this.getAuthHeaders(),
-                // 添加超时和重试机制
-                signal: AbortSignal.timeout(10000) // 10秒超时
+                signal: AbortSignal.timeout(10000)
             });
 
             if (response.ok) {
@@ -208,7 +206,6 @@ class TokenAdmin {
                 this.renderTokenTable(result.data.tokens);
                 this.renderPagination(result.data.pagination);
             } else if (response.status === 401) {
-                // Token过期，需要重新登录
                 this.showMessage('登录已过期，请重新登录', 'error');
                 this.handleLogout();
             } else {
@@ -236,7 +233,7 @@ class TokenAdmin {
         if (tokens.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="px-6 py-4 text-center text-gray-500">
+                    <td colspan="8" class="px-6 py-4 text-center text-gray-500">
                         暂无数据
                     </td>
                 </tr>
@@ -249,11 +246,18 @@ class TokenAdmin {
 
     // 渲染代币行
     renderTokenRow(token) {
+        // 应用类型筛选
         const filteredByType = this.filters.type === 'all' || 
             (this.filters.type === 'native' && token.is_native) ||
             (this.filters.type === 'erc20' && !token.is_native);
 
         if (!filteredByType) return '';
+
+        // 应用链筛选
+        const filteredByChain = this.filters.chain === 'all' || 
+            parseInt(this.filters.chain) === token.chain_id;
+
+        if (!filteredByChain) return '';
 
         return `
             <tr class="hover:bg-gray-50">
@@ -280,6 +284,15 @@ class TokenAdmin {
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     ${token.decimals}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        token.chain_id === 1 
+                            ? 'bg-indigo-100 text-indigo-800' 
+                            : 'bg-blue-100 text-blue-800'
+                    }">
+                        ${this.getChainName(token.chain_id)}
+                    </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -312,13 +325,21 @@ class TokenAdmin {
         `;
     }
 
-    // 其他方法继续...
     // 获取认证头
     getAuthHeaders() {
         return {
             'Authorization': `Bearer ${this.token}`,
             'Content-Type': 'application/json'
         };
+    }
+
+    // 获取链名称
+    getChainName(chainId) {
+        const chainNames = {
+            1: '以太坊主网',
+            8453: 'Base主网'
+        };
+        return chainNames[chainId] || `Chain ${chainId}`;
     }
 
     // 缩短地址显示
@@ -364,12 +385,10 @@ class TokenAdmin {
 
         container.appendChild(messageEl);
 
-        // 动画显示
         setTimeout(() => {
             messageEl.classList.remove('translate-x-full');
         }, 100);
 
-        // 自动隐藏
         setTimeout(() => {
             if (messageEl.parentNode) {
                 messageEl.classList.add('translate-x-full');
@@ -455,6 +474,7 @@ class TokenAdmin {
         document.getElementById('tokenSymbol').value = token.symbol;
         document.getElementById('contractAddress').value = token.contract_address;
         document.getElementById('decimals').value = token.decimals;
+        document.getElementById('chainId').value = token.chain_id || 1;
         document.getElementById('displayOrder').value = token.display_order || 0;
         document.getElementById('iconUrl').value = token.icon_url || '';
         document.getElementById('description').value = token.description || '';
@@ -472,6 +492,7 @@ class TokenAdmin {
             symbol: formData.get('symbol'),
             contract_address: formData.get('contract_address'),
             decimals: parseInt(formData.get('decimals')),
+            chain_id: parseInt(formData.get('chain_id') || 1),
             display_order: parseInt(formData.get('display_order') || 0),
             icon_url: formData.get('icon_url') || null,
             description: formData.get('description') || null,
@@ -586,7 +607,7 @@ class TokenAdmin {
         }
     }
 
-    // 渲染代币图标（简单版本 - 直接使用数据库中的icon_url）
+    // 渲染代币图标
     renderTokenIcon(token) {
         const { symbol, icon_url } = token;
         

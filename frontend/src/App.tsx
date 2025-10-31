@@ -9,7 +9,7 @@ import { transferContractAddress, transferContractABI } from './contracts'
 const API_BASE_URL: string = (import.meta as any).env?.VITE_API_BASE_URL 
   || ((import.meta as any).env?.MODE === 'development' ? 'http://localhost:3001/api' : '')
 
-// 代币数据类型定义
+// 代币数据类型定义定义
 interface Token {
   id: number
   name: string
@@ -32,6 +32,26 @@ interface AppToken {
   isNative: boolean
 }
 
+// 默认代币列表（按链区分） - 当后端不可用时使用
+const DEFAULT_TOKENS: Record<number, AppToken[]> = {
+  // 以太坊主网 (Chain ID: 1)
+  1: [
+    { name: 'ETH', address: '0x0000000000000000000000000000000000000000', decimals: 18, isNative: true },
+    { name: 'USDT', address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', decimals: 6, isNative: false },
+    { name: 'USDC', address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', decimals: 6, isNative: false },
+  ],
+  // Base主网 (Chain ID: 8453)
+  8453: [
+    { name: 'ETH', address: '0x0000000000000000000000000000000000000000', decimals: 18, isNative: true },
+    { name: 'USDC', address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', decimals: 6, isNative: false },
+  ],
+}
+
+// 获取当前链的默认代币列表
+function getDefaultTokens(chainId: number): AppToken[] {
+  return DEFAULT_TOKENS[chainId] || DEFAULT_TOKENS[1] // 默认返回以太坊主网的代币列表
+}
+
 function App() {
   const { address, isConnected, chainId } = useAccount()
 
@@ -39,6 +59,7 @@ function App() {
   const [supportedTokens, setSupportedTokens] = useState<AppToken[]>([])
   const [tokensLoading, setTokensLoading] = useState(true)
   const [tokensError, setTokensError] = useState<string | null>(null)
+  const [usingFallback, setUsingFallback] = useState(false)
 
   // Unified Transfer State
   const [recipient, setRecipient] = useState('')
@@ -65,23 +86,23 @@ function App() {
     try {
       setTokensLoading(true)
       setTokensError(null)
+      setUsingFallback(false)
+
+      const currentChainId = chainId || 1 // 默认使用以太坊主网
 
       // 如果没有配置API（例如生产环境未设置VITE_API_BASE_URL），直接使用默认代币
       if (!API_BASE_URL) {
-        const defaultTokens: AppToken[] = [
-          { name: 'ETH', address: '0x0000000000000000000000000000000000000000', decimals: 18, isNative: true },
-          { name: 'USDT', address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', decimals: 6, isNative: false },
-          { name: 'USDC', address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', decimals: 6, isNative: false },
-          { name: 'DAI', address: '0x6B175474E89094C44Da98b954EedeAC495271d0F', decimals: 18, isNative: false },
-        ]
+        const defaultTokens = getDefaultTokens(currentChainId)
         setSupportedTokens(defaultTokens)
+        setUsingFallback(true)
         if (!selectedToken && defaultTokens.length > 0) {
           setSelectedToken(defaultTokens[0])
         }
         return
       }
 
-      const response = await fetch(`${API_BASE_URL}/tokens`)
+      // 尝试从API获取代币列表
+      const response = await fetch(`${API_BASE_URL}/tokens?chain_id=${currentChainId}`)
 
       if (!response.ok) {
         throw new Error(`HTTP错误: ${response.status}`)
@@ -114,14 +135,12 @@ function App() {
       console.error('获取代币列表失败:', error)
       setTokensError(error instanceof Error ? error.message : '网络错误')
 
-      // 如果API失败，使用默认代币列表作为后备
-      const defaultTokens: AppToken[] = [
-        { name: 'ETH', address: '0x0000000000000000000000000000000000000000', decimals: 18, isNative: true },
-        { name: 'USDT', address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', decimals: 6, isNative: false },
-        { name: 'USDC', address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', decimals: 6, isNative: false },
-        { name: 'DAI', address: '0x6B175474E89094C44Da98b954EedeAC495271d0F', decimals: 18, isNative: false },
-      ]
+      // 如果API失败，使用按链区分的默认代币列表作为后备
+      const currentChainId = chainId || 1
+      const defaultTokens = getDefaultTokens(currentChainId)
       setSupportedTokens(defaultTokens)
+      setUsingFallback(true)
+      
       if (!selectedToken && defaultTokens.length > 0) {
         setSelectedToken(defaultTokens[0])
       }
@@ -130,10 +149,10 @@ function App() {
     }
   }
   
-  // 在组件挂载时获取代币列表
+  // 在组件挂载时获取代币列表，并在chainId变化时重新获取
   useEffect(() => {
     fetchTokens()
-  }, [])
+  }, [chainId]) // 当chainId变化时，重新获取代币列表
   
   // Effect to trigger transfer after approval is confirmed
   useEffect(() => {
@@ -262,9 +281,11 @@ function App() {
             )}
 
             {/* 显示代币数据来源信息 */}
-            {!tokensLoading && supportedTokens.length > 0 && API_BASE_URL && !tokensError && (
-              <p style={{fontSize: '0.8rem', margin: '0.25rem 0', color: '#888'}}>
-                {`${supportedTokens.length} tokens loaded from API`}
+            {!tokensLoading && supportedTokens.length > 0 && (
+              <p style={{fontSize: '0.8rem', margin: '0.25rem 0', color: usingFallback ? '#ffa500' : '#888'}}>
+                {usingFallback 
+                  ? `Using default tokens for chain ${chainId || 1} (API unavailable)` 
+                  : `${supportedTokens.length} tokens loaded from API`}
               </p>
             )}
 

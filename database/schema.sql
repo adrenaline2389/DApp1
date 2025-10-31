@@ -93,6 +93,33 @@ INSERT OR IGNORE INTO supported_tokens (
     4,
     'Dai is a decentralized stablecoin maintained by MakerDAO',
     'https://makerdao.com'
+),
+-- Base主网代币
+(
+    'Ethereum',
+    'ETH',
+    '0x0000000000000000000000000000000000000000',
+    18,
+    TRUE,
+    'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png',
+    8453,
+    TRUE,
+    1,
+    'Ethereum is the native currency on Base',
+    'https://ethereum.org'
+),
+(
+    'USD Coin',
+    'USDC',
+    '0x833589fCD6edb6E0f4b1d19D4a2e9Eb0cE3606eB48',
+    6,
+    FALSE,
+    'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png',
+    8453,
+    TRUE,
+    2,
+    'USD Coin on Base - Official bridged USDC',
+    'https://www.circle.com/en/usdc'
 );
 
 -- 创建代币操作日志表（可选，用于审计）

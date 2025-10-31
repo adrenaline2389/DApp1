@@ -1,3 +1,16 @@
+// 合约地址配置 - 支持多链
+export const getTransferContractAddress = (chainId: number): `0x${string}` => {
+  switch (chainId) {
+    case 1: // Ethereum Mainnet
+      return '0x1074814fa9F5c646c421eF21c5e83e872bFbBED7'
+    case 8453: // Base Mainnet
+      return '0x0000000000000000000000000000000000000000' // TODO: 部署后更新此地址
+    default:
+      throw new Error(`Unsupported chain ID: ${chainId}`)
+  }
+}
+
+// 保留向后兼容性
 export const transferContractAddress = '0x1074814fa9F5c646c421eF21c5e83e872bFbBED7' as const;
 export const testTokenAddress = '0x1074814fa9F5c646c421eF21c5e83e872bFbBED7' as const;
 
